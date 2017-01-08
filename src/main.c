@@ -87,6 +87,6 @@ int main(void) {
 		buffer[0] = ad_read_reg(0x93);
 		x = temp/32.00f;
 		printf("TEMP = %0.2f\n", x);
-		delay_ms(2000);
+		delay_ms(1000);
 	}
 }
