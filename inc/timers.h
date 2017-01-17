@@ -12,5 +12,6 @@
 #include "stdio.h"
 
 extern void TimerConf(int time);
+extern void TimerSetTime(int time);
 
 #endif /* TIMERS_H_ */

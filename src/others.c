@@ -81,3 +81,82 @@ void delay_ms(int time) {
 	while (timer_ms) {
 	};
 }
+
+void pharseData(char *buffer, int* stop, int* measure_f, int* time_f, int* freq, int* chann_num, int* time_b, int* measr_p, int* calib, int* calib_r, int* calib_c){
+	int lenght = strlen(buffer);
+	char temp[10] = {0};
+	int k = 0;
+	for(int i = 0; i<lenght; i++){
+		if(buffer[i] == 'F'){
+			*stop = 0;
+			for(int j = i+1; isdigit(buffer[j]); j++){
+				temp[k]=buffer[j];
+				k++;
+			}
+			sscanf(temp,"%d",freq);
+			memset(&temp[0], 0, sizeof(temp));
+			i=i+k;
+			k=0;
+		}
+		else if(buffer[i] == 'C'){
+			for(int j = i+1; isdigit(buffer[j]); j++){
+				temp[k]=buffer[j];
+				k++;
+			}
+			sscanf(temp,"%d",chann_num);
+			memset(&temp[0], 0, sizeof(temp));
+			k=0;
+		}
+		else if(buffer[i] == 'T'){
+			for(int j = i+1; isdigit(buffer[j]); j++){
+				temp[k]=buffer[j];
+				k++;
+			}
+			sscanf(temp,"%d",time_b);
+			memset(&temp[0], 0, sizeof(temp));
+			i=i+k;
+			k=0;
+		}
+		else if(buffer[i] == 'M'){
+			*time_f=1;
+			for(int j = i+1; isdigit(buffer[j]); j++){
+				temp[k]=buffer[j];
+				k++;
+			}
+			sscanf(temp,"%d",measr_p);
+			memset(&temp[0], 0, sizeof(temp));
+			i=i+k;
+			k=0;
+		}
+		else if(buffer[i] == 'A'){
+			for(int j = i+1; isdigit(buffer[j]); j++){
+				temp[k]=buffer[j];
+				k++;
+			}
+			sscanf(temp,"%d",calib_c);
+			memset(&temp[0], 0, sizeof(temp));
+			i=i+k;
+			k=0;
+		}
+		else if(buffer[i] == 'R'){
+			*stop = 0;
+			*calib = 1;
+			for(int j = i+1; isdigit(buffer[j]); j++){
+				temp[k]=buffer[j];
+				k++;
+			}
+			sscanf(temp,"%d",calib_r);
+			memset(&temp[0], 0, sizeof(temp));
+			i=i+k;
+			k=0;
+		}
+		else if(buffer[i] == 'S'){
+			*stop = 1;
+			*measr_p = 0;
+			*measure_f = 0;
+			k=0;
+		}
+
+	}
+
+}

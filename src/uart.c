@@ -15,8 +15,9 @@ void send_char(char c)
 
 int __io_putchar(int c)
 {
- if (c=='\n')
+ if (c=='\n'){
  send_char('\r');
+ }
  send_char(c);
  return c;
 }

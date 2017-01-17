@@ -9,35 +9,52 @@
  */
 
 #include "stm32f10x.h"
-#include "stdio.h"
+#include <stdio.h>
+#include <string.h>
 #include "AD5933.h"
 #include "relay.h"
 #include "timers.h"
 #include "uart.h"
 #include "others.h"
+#include <ctype.h>
 
 
-volatile int measure_freq = 5;
-volatile int channel_q = 13;
-volatile int wait_t = 1000;
+static int timeBetween = 0;
+static int channelQuantity = 0;
+static int measurmentPoints = 0;
+static int frequency = 0;
+static int calibResistance = 0;
+static int calibCapacitance = 0;
+static double gainFactor = 0;
+
+static int rx_flag = 0;
+static int calib_flag = 0;
+static int measure_flag =0;
+static int time_flag = 0;
+static int stop_flag = 0;
+
 volatile uint8_t temp_h = 0;
 volatile uint8_t temp_l = 0;
 volatile uint16_t temp = 0;
+volatile uint16_t temp_buffer[16] = {0};
 
+#define MAX_STRLEN 19
+char received_string[MAX_STRLEN+1];
 
 void USART1_IRQHandler() {
-	if (USART_GetFlagStatus(USART1, USART_FLAG_RXNE)) {
-		char c = USART_ReceiveData(USART1);
-		switch (c) {
-		case 'a':
-			printf("Odebrano komunikat A!\n");
-			break;
-		case 'b':
-			printf("Odebrano komunikat B!\n");
-			break;
-		default:
-			printf("Nieznany komunikat:(\n");
-			break;
+
+	if( USART_GetITStatus(USART1, USART_IT_RXNE) ){
+
+		static uint8_t cnt = 0;
+		char t = USART_ReceiveData(USART1);
+
+		if( (t != '\n') && (cnt < MAX_STRLEN) ){
+			received_string[cnt] = t;
+			cnt++;
+		}
+		else{
+			cnt = 0;
+			rx_flag = 1;
 		}
 	}
 }
@@ -52,7 +69,9 @@ void EXTI2_IRQHandler() {
 }
 void TIM2_IRQHandler() {
 	if (TIM_GetITStatus(TIM2, TIM_IT_Update) == SET) {
-
+		if(measurmentPoints > 0){
+			measure_flag = 1;
+		}
 		if (GPIO_ReadOutputDataBit(GPIOB, GPIO_Pin_15))
 			GPIO_ResetBits(GPIOB, GPIO_Pin_15);
 		else
@@ -66,7 +85,7 @@ int main(void) {
 
 	ClockConf();
 	UartConf();
-	TimerConf(measure_freq);
+	TimerConf(timeBetween);
 	ButtonConf();
 	LEDConf();
 	RelayConf();
@@ -76,17 +95,34 @@ int main(void) {
 	GPIO_SetBits(GPIOB, GPIO_Pin_14);
 	RelayAllOff();
 
-	uint8_t* buffer = &temp;
-	float x = 0;
 	while (1) {
-		printf("START\n");
-		ad_write_reg(0x80,0x91);
-		ad_write_reg(0x81,0x00);
-		delay_ms(100);
-		buffer[1] = ad_read_reg(0x92);
-		buffer[0] = ad_read_reg(0x93);
-		x = temp/32.00f;
-		printf("TEMP = %0.2f\n", x);
-		delay_ms(500);
+
+		if(rx_flag == 1){
+			pharseData(received_string, &stop_flag, &measure_flag, &time_flag, &frequency, &channelQuantity, &timeBetween, &measurmentPoints, &calib_flag, &calibResistance, &calibCapacitance);
+			rx_flag = 0;
+			printf("Recived data!\n");
+		}
+		if(time_flag == 1 && stop_flag == 0){
+			TimerSetTime(timeBetween);
+			time_flag =0;
+			printf("Time Set!\n");
+		}
+		if(calib_flag == 1 && stop_flag == 0){
+			gainFactor = ad_calibrate(calibResistance,8);
+
+			calib_flag = 0;
+			stop_flag = 1;
+			printf("Calibration Done!\n");
+		}
+		if(measure_flag == 1 && stop_flag == 0){
+			ad_measurment(frequency, channelQuantity, gainFactor);
+
+			measurmentPoints--;
+			measure_flag = 0;
+			if(measurmentPoints == 0){
+				printf("Measurment Done!\n");
+			}
+		}
+		delay_ms(10);
 	}
 }

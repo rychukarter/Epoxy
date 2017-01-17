@@ -28,3 +28,7 @@ void TimerConf(int time) {
 	nvic.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&nvic);
 }
+
+void TimerSetTime(int time){
+	TIM_SetAutoreload(TIM2, (time * 1000)-1);
+}
